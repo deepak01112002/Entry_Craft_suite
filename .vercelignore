@@ -1,0 +1,3 @@
+# Ignore everything except what we need
+# This ensures Vercel doesn't try to serve API files as static assets
+
