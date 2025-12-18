@@ -71,7 +71,6 @@ async function setupServer() {
     // Import API handlers
     const { default: configHandler } = await import('./api/config/index.ts');
     const { default: entriesHandler } = await import('./api/entries/index.ts');
-    const { default: entryByIdHandler } = await import('./api/entries/[id].ts');
     const { default: uploadHandler } = await import('./api/upload/index.ts');
     const { default: testHandler } = await import('./api/test.ts');
 
@@ -79,7 +78,8 @@ async function setupServer() {
     app.use('/api/test', createVercelHandler(testHandler));
     app.use('/api/config', createVercelHandler(configHandler));
     app.use('/api/upload', createVercelHandler(uploadHandler));
-    app.use('/api/entries/:id', createVercelHandler(entryByIdHandler));
+    // Support both /api/entries and /api/entries/:id using the same handler
+    app.use('/api/entries/:id', createVercelHandler(entriesHandler));
     app.use('/api/entries', createVercelHandler(entriesHandler));
 
     // Create Vite server for frontend

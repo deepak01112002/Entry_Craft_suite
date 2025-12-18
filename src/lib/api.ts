@@ -50,11 +50,22 @@ export async function fetchEntries(): Promise<ProductEntry[]> {
 }
 
 export async function fetchEntry(id: string): Promise<ProductEntry> {
-  const response = await fetch(`${API_BASE_URL}/entries/${id}`);
+  const response = await fetch(`${API_BASE_URL}/entries?id=${encodeURIComponent(id)}`);
   if (!response.ok) {
     throw new Error('Failed to fetch entry');
   }
-  return response.json();
+  const data = await response.json();
+
+  // Backend may return either a single object or an array (depending on environment/cache)
+  if (Array.isArray(data)) {
+    const found = data.find((entry) => entry.id === id);
+    if (!found) {
+      throw new Error('Entry not found');
+    }
+    return found;
+  }
+
+  return data;
 }
 
 export async function createEntry(entry: Omit<ProductEntry, 'id' | 'createdAt'>): Promise<ProductEntry> {
@@ -72,7 +83,7 @@ export async function createEntry(entry: Omit<ProductEntry, 'id' | 'createdAt'>)
 }
 
 export async function updateEntry(id: string, updates: Partial<ProductEntry>): Promise<ProductEntry> {
-  const response = await fetch(`${API_BASE_URL}/entries/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/entries?id=${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -86,7 +97,7 @@ export async function updateEntry(id: string, updates: Partial<ProductEntry>): P
 }
 
 export async function deleteEntry(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/entries/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/entries?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
   if (!response.ok) {

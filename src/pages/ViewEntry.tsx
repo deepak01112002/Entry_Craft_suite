@@ -61,6 +61,20 @@ const ViewEntry = () => {
     );
   }
 
+  const safeFormatDate = (
+    dateStr: string | undefined,
+    pattern: string,
+    fallbackToRaw: boolean = false
+  ) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) {
+      // If the date is in an unexpected format, optionally show the raw value
+      return fallbackToRaw ? dateStr : null;
+    }
+    return format(d, pattern);
+  };
+
   const handleDownload = async () => {
     await generatePDF(entry, 'download');
   };
@@ -71,23 +85,26 @@ const ViewEntry = () => {
 
   const handleShare = async () => {
     const pdf = await generatePDF(entry, 'blob');
+    const formattedDate = safeFormatDate(entry.date, 'dd/MM/yyyy') ?? 'N/A';
     if (pdf && navigator.share) {
       try {
         await navigator.share({
           title: `Challan - ${entry.partyName}`,
-          text: `Product Processing Entry for ${entry.productName}`,
+          text: `Product Processing Entry for ${entry.productName} on ${formattedDate}`,
           files: [new File([pdf], `challan-${entry.id}.pdf`, { type: 'application/pdf' })],
         });
       } catch (err) {
-        const text = encodeURIComponent(
-          `Product Processing Entry\nParty: ${entry.partyName}\nProduct: ${entry.productName}\nDate: ${format(new Date(entry.date), 'dd/MM/yyyy')}`
-        );
+        const text = encodeURIComponent(`Product Processing Entry
+Party: ${entry.partyName}
+Product: ${entry.productName}
+Date: ${formattedDate}`);
         window.open(`https://wa.me/?text=${text}`, '_blank');
       }
     } else {
-      const text = encodeURIComponent(
-        `Product Processing Entry\nParty: ${entry.partyName}\nProduct: ${entry.productName}\nDate: ${format(new Date(entry.date), 'dd/MM/yyyy')}`
-      );
+      const text = encodeURIComponent(`Product Processing Entry
+Party: ${entry.partyName}
+Product: ${entry.productName}
+Date: ${formattedDate}`);
       window.open(`https://wa.me/?text=${text}`, '_blank');
     }
   };
@@ -138,8 +155,14 @@ const ViewEntry = () => {
               <p className="text-muted-foreground">{entry.partyName}</p>
             </div>
             <div className="text-sm text-muted-foreground">
-              <p>Challan No: {entry.challanNumber || entry.id.slice(0, 8).toUpperCase()}</p>
-              <p>{format(new Date(entry.date), 'dd MMM yyyy')}</p>
+              <p>
+                Challan No:{' '}
+                {entry.challanNumber ||
+                  (entry.id ? entry.id.slice(0, 8).toUpperCase() : 'N/A')}
+              </p>
+              <p>
+                {safeFormatDate(entry.date, 'dd MMM yyyy', true) ?? 'Date N/A'}
+              </p>
             </div>
           </div>
 
@@ -169,7 +192,13 @@ const ViewEntry = () => {
               Basic Details
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-              <DetailRow label="Date" value={format(new Date(entry.date), 'dd MMMM yyyy')} icon={Calendar} />
+              <DetailRow
+                label="Date"
+                value={
+                  safeFormatDate(entry.date, 'dd MMMM yyyy', true) ?? 'Date N/A'
+                }
+                icon={Calendar}
+              />
               <DetailRow label="Challan Number" value={entry.challanNumber} icon={Package} />
               <DetailRow label="Company" value={entry.unit} icon={Package} />
               <DetailRow label="Party Name" value={entry.partyName} icon={User} />

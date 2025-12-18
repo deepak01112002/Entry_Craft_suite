@@ -56,14 +56,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = client.db(DB_NAME);
     const collection = db.collection<ProductEntry>('entries');
 
+    // Support both list and single entry via query.id
+    const rawId = (req as any).query?.id;
+    const id = typeof rawId === 'string' ? rawId : Array.isArray(rawId) ? rawId[0] : undefined;
+
     if (req.method === 'GET') {
-      const entries = await collection.find({}).sort({ createdAt: -1 }).toArray();
-      const formattedEntries = entries.map(entry => ({
-        id: entry._id?.toString(),
-        ...entry,
-        _id: undefined,
-      }));
-      res.status(200).json(formattedEntries);
+      if (id) {
+        // Get single entry by id
+        const entry = await collection.findOne({ _id: new ObjectId(id) });
+        if (!entry) {
+          res.status(404).json({ error: 'Entry not found' });
+          return;
+        }
+        res.status(200).json({
+          id: entry._id?.toString(),
+          ...entry,
+          _id: undefined,
+        });
+      } else {
+        // List all entries
+        const entries = await collection.find({}).sort({ createdAt: -1 }).toArray();
+        const formattedEntries = entries.map(entry => ({
+          id: entry._id?.toString(),
+          ...entry,
+          _id: undefined,
+        }));
+        res.status(200).json(formattedEntries);
+      }
     } else if (req.method === 'POST') {
       const entry = req.body;
       const newEntry: Omit<ProductEntry, '_id'> = {
@@ -77,6 +96,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ...insertedEntry,
         _id: undefined,
       });
+    } else if (req.method === 'PUT') {
+      if (!id) {
+        res.status(400).json({ error: 'Entry ID is required' });
+        return;
+      }
+      const updates = req.body;
+      delete updates.id;
+      delete updates._id;
+      delete updates.createdAt;
+
+      const result = await collection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updates }
+      );
+
+      if (result.matchedCount === 0) {
+        res.status(404).json({ error: 'Entry not found' });
+        return;
+      }
+
+      const updatedEntry = await collection.findOne({ _id: new ObjectId(id) });
+      res.status(200).json({
+        id: updatedEntry?._id?.toString(),
+        ...updatedEntry,
+        _id: undefined,
+      });
+    } else if (req.method === 'DELETE') {
+      if (!id) {
+        res.status(400).json({ error: 'Entry ID is required' });
+        return;
+      }
+
+      const result = await collection.deleteOne({ _id: new ObjectId(id) });
+      if (result.deletedCount === 0) {
+        res.status(404).json({ error: 'Entry not found' });
+        return;
+      }
+      res.status(200).json({ success: true });
     } else {
       res.status(405).json({ error: 'Method not allowed' });
     }
