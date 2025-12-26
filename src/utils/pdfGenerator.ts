@@ -2,6 +2,18 @@ import jsPDF from 'jspdf';
 import { ProductEntry } from '@/types/entry';
 import { format } from 'date-fns';
 
+const formatDate = (dateString: string, formatStr: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return dateString; // Return original string if invalid
+    }
+    return format(date, formatStr);
+  } catch {
+    return dateString; // Return original string on error
+  }
+};
+
 export const generatePDF = async (
   entry: ProductEntry,
   action: 'download' | 'print' | 'blob'
@@ -28,7 +40,7 @@ export const generatePDF = async (
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Date: ${format(new Date(entry.date), 'dd/MM/yyyy')}`, pageWidth / 2, 32, { align: 'center' });
+  doc.text(`Date: ${formatDate(entry.date, 'dd/MM/yyyy')}`, pageWidth / 2, 32, { align: 'center' });
   doc.text(`Challan No: ${entry.challanNumber || entry.id.slice(0, 8).toUpperCase()}`, pageWidth / 2, 37, { align: 'center' });
 
   y = 50;
@@ -162,7 +174,7 @@ export const generatePDF = async (
   doc.text('This is a computer-generated document.', pageWidth / 2, footerY, { align: 'center' });
 
   if (action === 'download') {
-    doc.save(`challan-${entry.partyName}-${format(new Date(entry.date), 'ddMMyyyy')}.pdf`);
+    doc.save(`challan-${entry.partyName}-${formatDate(entry.date, 'ddMMyyyy')}.pdf`);
   } else if (action === 'print') {
     doc.autoPrint();
     window.open(doc.output('bloburl'), '_blank');

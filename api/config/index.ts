@@ -3,7 +3,7 @@ import { MongoClient } from 'mongodb';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME = process.env.DB_NAME || 'entry_craft';
-const COMPANY_UNITS = process.env.COMPANY_UNITS || 'Company 1,Company 2';
+const COMPANY_UNITS = process.env.COMPANY_UNITS || 'SP PVD TECH,SP TECNO COATING';
 
 let cachedClient: MongoClient | null = null;
 

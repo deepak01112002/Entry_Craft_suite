@@ -1,4 +1,4 @@
-import { LogOut, Package } from 'lucide-react';
+import { LogOut, Package, Key } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useConfig } from '@/context/ConfigContext';
 import { Button } from '@/components/ui/button';
@@ -29,15 +29,26 @@ export const Header = () => {
           </div>
         </div>
         
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleLogout}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">Logout</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/change-password')}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Key className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Change Password</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Logout</span>
+          </Button>
+        </div>
       </div>
     </header>
   );

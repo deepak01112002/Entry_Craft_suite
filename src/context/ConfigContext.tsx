@@ -22,7 +22,7 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Set defaults if API fails
       setConfig({
         projectName: 'PPE Manager',
-        companyUnits: ['Company 1', 'Company 2'],
+        companyUnits: ['SP PVD TECH', 'SP TECNO COATING'],
       });
     } finally {
       setIsLoading(false);

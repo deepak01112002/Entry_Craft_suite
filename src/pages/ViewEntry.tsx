@@ -1,46 +1,41 @@
-import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Printer, Share2, Calendar, User, Package, Ruler, Layers, FileText, PenTool } from 'lucide-react';
+import { ArrowLeft, Download, Printer, Share2, Calendar, User, Package, Ruler, Layers, FileText, PenTool, Trash2 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useEntries } from '@/hooks/useEntries';
-import { fetchEntry } from '@/lib/api';
-import { ProductEntry } from '@/types/entry';
 import { Button } from '@/components/ui/button';
 import { generatePDF } from '@/utils/pdfGenerator';
 import { format } from 'date-fns';
+import { toast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
+const formatDate = (dateString: string, formatStr: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return dateString; // Return original string if invalid
+    }
+    return format(date, formatStr);
+  } catch {
+    return dateString; // Return original string on error
+  }
+};
 
 const ViewEntry = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getEntry } = useEntries();
-  const [entry, setEntry] = useState<ProductEntry | undefined>(id ? getEntry(id) : undefined);
-  const [isLoading, setIsLoading] = useState(false);
+  const { getEntry, deleteEntry } = useEntries();
 
-  useEffect(() => {
-    if (id && !entry) {
-      setIsLoading(true);
-      fetchEntry(id)
-        .then(setEntry)
-        .catch((error) => {
-          console.error('Failed to fetch entry:', error);
-        })
-        .finally(() => setIsLoading(false));
-    }
-  }, [id, entry]);
-
-  if (isLoading) {
-    return (
-      <div className="page-container">
-        <Header />
-        <main className="content-container">
-          <div className="text-center py-16">
-            <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-pulse" />
-            <h2 className="text-xl font-semibold mb-2">Loading...</h2>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  const entry = id ? getEntry(id) : undefined;
 
   if (!entry) {
     return (
@@ -61,20 +56,6 @@ const ViewEntry = () => {
     );
   }
 
-  const safeFormatDate = (
-    dateStr: string | undefined,
-    pattern: string,
-    fallbackToRaw: boolean = false
-  ) => {
-    if (!dateStr) return null;
-    const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) {
-      // If the date is in an unexpected format, optionally show the raw value
-      return fallbackToRaw ? dateStr : null;
-    }
-    return format(d, pattern);
-  };
-
   const handleDownload = async () => {
     await generatePDF(entry, 'download');
   };
@@ -85,36 +66,55 @@ const ViewEntry = () => {
 
   const handleShare = async () => {
     const pdf = await generatePDF(entry, 'blob');
-    const formattedDate = safeFormatDate(entry.date, 'dd/MM/yyyy') ?? 'N/A';
     if (pdf && navigator.share) {
       try {
         await navigator.share({
           title: `Challan - ${entry.partyName}`,
-          text: `Product Processing Entry for ${entry.productName} on ${formattedDate}`,
+          text: `Product Processing Entry for ${entry.productName}`,
           files: [new File([pdf], `challan-${entry.id}.pdf`, { type: 'application/pdf' })],
         });
       } catch (err) {
-        const text = encodeURIComponent(`Product Processing Entry
-Party: ${entry.partyName}
-Product: ${entry.productName}
-Date: ${formattedDate}`);
-        window.open(`https://wa.me/?text=${text}`, '_blank');
-      }
-    } else {
-      const text = encodeURIComponent(`Product Processing Entry
-Party: ${entry.partyName}
-Product: ${entry.productName}
-Date: ${formattedDate}`);
+      const text = encodeURIComponent(
+        `Product Processing Entry\nParty: ${entry.partyName}\nProduct: ${entry.productName}\nDate: ${formatDate(entry.date, 'dd/MM/yyyy')}`
+      );
       window.open(`https://wa.me/?text=${text}`, '_blank');
+    }
+  } else {
+    const text = encodeURIComponent(
+      `Product Processing Entry\nParty: ${entry.partyName}\nProduct: ${entry.productName}\nDate: ${formatDate(entry.date, 'dd/MM/yyyy')}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  }
+};
+
+  const handleDelete = async () => {
+    if (!entry) return;
+    try {
+      await deleteEntry(entry.id);
+      toast({
+        title: 'Entry Deleted',
+        description: 'The entry has been deleted successfully',
+      });
+      navigate('/dashboard');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete entry. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
-  const DetailRow = ({ label, value, icon: Icon }: { label: string; value?: string | number; icon?: React.ComponentType<{ className?: string }> }) => (
+  const DetailRow = ({ label, value, icon: Icon, isProcessType }: { label: string; value?: string | number | React.ReactNode; icon?: React.ComponentType<{ className?: string }>; isProcessType?: boolean }) => (
     <div className="flex items-start gap-3 py-2">
       {Icon && <Icon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />}
       <div className="flex-1 min-w-0">
         <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="font-medium text-foreground break-words">{value || '-'}</p>
+        {isProcessType ? (
+          <p className="font-bold text-foreground break-words">{value || '-'}</p>
+        ) : (
+          <p className="font-medium text-foreground break-words">{value || '-'}</p>
+        )}
       </div>
     </div>
   );
@@ -148,21 +148,15 @@ Date: ${formattedDate}`);
         <div className="card-elevated mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <span className="status-badge status-badge-primary mb-2 inline-block">
+              <span className="status-badge status-badge-primary mb-2 inline-block font-bold text-foreground">
                 {entry.processType}
               </span>
               <h1 className="text-2xl font-bold text-foreground">{entry.productName}</h1>
               <p className="text-muted-foreground">{entry.partyName}</p>
             </div>
             <div className="text-sm text-muted-foreground">
-              <p>
-                Challan No:{' '}
-                {entry.challanNumber ||
-                  (entry.id ? entry.id.slice(0, 8).toUpperCase() : 'N/A')}
-              </p>
-              <p>
-                {safeFormatDate(entry.date, 'dd MMM yyyy', true) ?? 'Date N/A'}
-              </p>
+              <p>Challan No: {entry.challanNumber || entry.id.slice(0, 8).toUpperCase()}</p>
+              <p>{formatDate(entry.date, 'dd MMM yyyy')}</p>
             </div>
           </div>
 
@@ -180,6 +174,28 @@ Date: ${formattedDate}`);
               <Share2 className="h-4 w-4 mr-1" />
               Share
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this entry? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
@@ -192,13 +208,7 @@ Date: ${formattedDate}`);
               Basic Details
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-              <DetailRow
-                label="Date"
-                value={
-                  safeFormatDate(entry.date, 'dd MMMM yyyy', true) ?? 'Date N/A'
-                }
-                icon={Calendar}
-              />
+              <DetailRow label="Date" value={formatDate(entry.date, 'dd MMMM yyyy')} icon={Calendar} />
               <DetailRow label="Challan Number" value={entry.challanNumber} icon={Package} />
               <DetailRow label="Company" value={entry.unit} icon={Package} />
               <DetailRow label="Party Name" value={entry.partyName} icon={User} />
@@ -235,7 +245,11 @@ Date: ${formattedDate}`);
               Process & Quantity
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6">
-              <DetailRow label="Process Type" value={entry.processType} />
+              <DetailRow 
+                label="Process Type" 
+                value={entry.processType}
+                isProcessType={true}
+              />
               <DetailRow label="Quantity" value={entry.quantity} />
               <DetailRow label="Balance Qty" value={entry.balanceQty} />
               <DetailRow label="Return Qty" value={entry.returnQuantity} />

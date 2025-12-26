@@ -11,6 +11,7 @@ import Setup from "./pages/Setup";
 import Dashboard from "./pages/Dashboard";
 import AddEntry from "./pages/AddEntry";
 import ViewEntry from "./pages/ViewEntry";
+import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +76,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <ViewEntry />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/change-password"
+      element={
+        <ProtectedRoute>
+          <ChangePassword />
         </ProtectedRoute>
       }
     />

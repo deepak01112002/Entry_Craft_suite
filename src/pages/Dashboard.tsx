@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { PROCESS_TYPES } from '@/types/entry';
+import { cn } from '@/lib/utils';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -24,8 +25,8 @@ const Dashboard = () => {
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
       const matchesSearch =
-        entry.partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.productName.toLowerCase().includes(searchTerm.toLowerCase());
+        (entry.partyName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (entry.productName?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
       const matchesDate = filterDate
         ? entry.date === format(filterDate, 'yyyy-MM-dd')
@@ -93,13 +94,13 @@ const Dashboard = () => {
               </Popover>
 
               <Select value={filterProcess} onValueChange={setFilterProcess}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className={cn("w-[140px]", filterProcess && filterProcess !== 'all' && "font-bold")}>
                   <SelectValue placeholder="Process Type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   {PROCESS_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
+                    <SelectItem key={type} value={type} className="font-bold">
                       {type}
                     </SelectItem>
                   ))}

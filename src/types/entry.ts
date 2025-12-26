@@ -25,3 +25,5 @@ export interface ProductEntry {
 export type ProcessType = 'Gold' | 'RoseGold' | 'Black' | 'Gun';
 
 export const PROCESS_TYPES: ProcessType[] = ['Gold', 'RoseGold', 'Black', 'Gun'];
+export const COMPANY_OPTIONS = ['SP PVD TECH', 'SP TECNO COATING'] as const;
+

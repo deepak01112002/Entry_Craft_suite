@@ -4,13 +4,26 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (username: string, password: string) => boolean;
   logout: () => void;
+  changePassword: (oldPassword: string, newPassword: string) => boolean;
+  getCurrentPassword: () => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const getStoredPassword = (): string => {
+  const stored = localStorage.getItem('adminPassword');
+  return stored || 'admin@123'; // Default password
+};
+
+const setStoredPassword = (password: string): void => {
+  localStorage.setItem('adminPassword', password);
+};
+
 const STATIC_CREDENTIALS = {
   username: 'admin',
-  password: 'admin@123',
+  get password() {
+    return getStoredPassword();
+  },
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -35,8 +48,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('isAuthenticated');
   };
 
+  const changePassword = (oldPassword: string, newPassword: string): boolean => {
+    if (oldPassword !== STATIC_CREDENTIALS.password) {
+      return false; // Old password doesn't match
+    }
+    if (newPassword.trim().length === 0) {
+      return false; // New password cannot be empty
+    }
+    setStoredPassword(newPassword);
+    return true;
+  };
+
+  const getCurrentPassword = (): string => {
+    return STATIC_CREDENTIALS.password;
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, changePassword, getCurrentPassword }}>
       {children}
     </AuthContext.Provider>
   );

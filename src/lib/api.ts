@@ -129,7 +129,7 @@ export async function fetchConfig(): Promise<AppConfig> {
         console.warn('API route not found. Using default config. Make sure you are running "npm run dev:vercel"');
         return {
           projectName: 'PPE Manager',
-          companyUnits: ['Company 1', 'Company 2'],
+          companyUnits: ['SP PVD TECH', 'SP TECNO COATING'],
         };
       }
       throw new Error(`Failed to fetch config: ${response.status} ${response.statusText}`);
@@ -141,7 +141,7 @@ export async function fetchConfig(): Promise<AppConfig> {
       console.warn('Cannot connect to API. Using default config. Make sure you are running "npm run dev:vercel"');
       return {
         projectName: 'PPE Manager',
-        companyUnits: ['Company 1', 'Company 2'],
+        companyUnits: ['SP PVD TECH', 'SP TECNO COATING'],
       };
     }
     throw error;

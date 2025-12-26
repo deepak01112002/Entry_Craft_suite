@@ -14,8 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { PROCESS_TYPES } from '@/types/entry';
-import { useConfig } from '@/context/ConfigContext';
+import { PROCESS_TYPES, COMPANY_OPTIONS } from '@/types/entry';
 import { cn } from '@/lib/utils';
 
 interface FormData {
@@ -69,12 +68,9 @@ interface ValidationErrors {
 const AddEntry = () => {
   const navigate = useNavigate();
   const { addEntry } = useEntries();
-  const { config } = useConfig();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const companyOptions = config?.companyUnits || [];
 
   const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -118,7 +114,7 @@ const AddEntry = () => {
     setIsSubmitting(true);
 
     try {
-      await addEntry({
+      addEntry({
         date: format(formData.date!, 'yyyy-MM-dd'),
         challanNumber: formData.challanNumber.trim(),
         unit: formData.unit,
@@ -147,7 +143,6 @@ const AddEntry = () => {
 
       navigate('/dashboard');
     } catch (error) {
-      console.error('Error creating entry:', error);
       toast({
         title: 'Error',
         description: 'Failed to save entry. Please try again.',
@@ -236,7 +231,7 @@ const AddEntry = () => {
                     <SelectValue placeholder="Select company" />
                   </SelectTrigger>
                   <SelectContent>
-                    {companyOptions.map((company) => (
+                    {COMPANY_OPTIONS.map((company) => (
                       <SelectItem key={company} value={company}>
                         {company}
                       </SelectItem>
@@ -345,12 +340,12 @@ const AddEntry = () => {
             <div className="input-group">
               <Label className="input-label input-required">Process Type</Label>
               <Select value={formData.processType} onValueChange={(v) => updateField('processType', v)}>
-                <SelectTrigger className={errors.processType ? 'border-destructive' : ''}>
+                <SelectTrigger className={cn(errors.processType ? 'border-destructive' : '', formData.processType && "font-bold")}>
                   <SelectValue placeholder="Select process type" />
                 </SelectTrigger>
                 <SelectContent>
                   {PROCESS_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
+                    <SelectItem key={type} value={type} className="font-bold">
                       {type}
                     </SelectItem>
                   ))}

@@ -1,16 +1,42 @@
-import { Eye, Download, Printer, Share2, Calendar, User, Package } from 'lucide-react';
+import { Eye, Download, Printer, Share2, Calendar, User, Package, Trash2 } from 'lucide-react';
 import { ProductEntry } from '@/types/entry';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { generatePDF } from '@/utils/pdfGenerator';
+import { useEntries } from '@/hooks/useEntries';
+import { toast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface EntryCardProps {
   entry: ProductEntry;
 }
 
+const formatDate = (dateString: string, formatStr: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return dateString; // Return original string if invalid
+    }
+    return format(date, formatStr);
+  } catch {
+    return dateString; // Return original string on error
+  }
+};
+
 export const EntryCard = ({ entry }: EntryCardProps) => {
   const navigate = useNavigate();
+  const { deleteEntry } = useEntries();
 
   const handleView = () => {
     navigate(`/entry/${entry.id}`);
@@ -36,15 +62,31 @@ export const EntryCard = ({ entry }: EntryCardProps) => {
       } catch (err) {
         // Fallback: open WhatsApp with text
         const text = encodeURIComponent(
-          `Product Processing Entry\nParty: ${entry.partyName}\nProduct: ${entry.productName}\nDate: ${format(new Date(entry.date), 'dd/MM/yyyy')}`
+          `Product Processing Entry\nParty: ${entry.partyName}\nProduct: ${entry.productName}\nDate: ${formatDate(entry.date, 'dd/MM/yyyy')}`
         );
         window.open(`https://wa.me/?text=${text}`, '_blank');
       }
     } else {
       const text = encodeURIComponent(
-        `Product Processing Entry\nParty: ${entry.partyName}\nProduct: ${entry.productName}\nDate: ${format(new Date(entry.date), 'dd/MM/yyyy')}`
+        `Product Processing Entry\nParty: ${entry.partyName}\nProduct: ${entry.productName}\nDate: ${formatDate(entry.date, 'dd/MM/yyyy')}`
       );
       window.open(`https://wa.me/?text=${text}`, '_blank');
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteEntry(entry.id);
+      toast({
+        title: 'Entry Deleted',
+        description: 'The entry has been deleted successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete entry. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -60,7 +102,7 @@ export const EntryCard = ({ entry }: EntryCardProps) => {
                 <span>{entry.partyName}</span>
               </div>
             </div>
-            <span className="status-badge status-badge-primary">
+            <span className="status-badge status-badge-primary font-bold text-foreground">
               {entry.processType}
             </span>
           </div>
@@ -68,7 +110,7 @@ export const EntryCard = ({ entry }: EntryCardProps) => {
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5" />
-              <span>{format(new Date(entry.date), 'dd MMM yyyy')}</span>
+              <span>{formatDate(entry.date, 'dd MMM yyyy')}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Package className="h-3.5 w-3.5" />
@@ -95,6 +137,28 @@ export const EntryCard = ({ entry }: EntryCardProps) => {
           <Share2 className="h-4 w-4 mr-1" />
           Share
         </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10">
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this entry? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
